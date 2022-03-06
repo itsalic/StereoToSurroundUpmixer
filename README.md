@@ -12,11 +12,11 @@ I designed a solution, which will seamlessly play true surround, or alternativel
 This VST plugin take's window's multi-channel audio output, and checks on a channel per channel basis to see if it is empty. If a true 5.1 audio signal is present, the output will be unchanged and all of this plugin's processings will be bypassed. However, if the a channel is empty, it will get fill the channel with a corresponding channel.
 As below:
 
-                        L                                C                                R                            LFE (Sub)
-                   (unchanged)                 (50% Left + 50% Right)                (unchanged)                 (50% Left + 50% Right)
+         L                                C                                R                      LFE (Sub)
+    (unchanged)                 (50% Left + 50% Right)                (unchanged)           (50% Left + 50% Right)
 
-                       RL                                                                 RR
-                    (L Copy)                                                           (R Copy)
+        RL                                                                RR
+     (L Copy)                                                          (R Copy)
                     
 ## The Controls
 As most upmixers do, it provides some controls to filter the output frequencies sent to the speakers, surround speakers generally will output the mid & high frequencies, and the sub is responsible for reproducing the low frequencies. The crossover frequency control defines the frequency (Hz) in which the bass sounds are rolled off the surround speakers and the trebels are rolled off the subwoofer channel. Rolling the dial to the left will introduce more bass into the surround speakers, but subtract some of the bass/mids from the Sub. The crossover frequency will vary between home theatre setups, but if you aren't sure then leave it as it is. If you want the bass sound coming from the surround speakers also, check the 'Full-range surround speakers' button, this will bypass the bass cut-off on the surround channels.
