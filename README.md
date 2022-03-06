@@ -20,6 +20,7 @@ As below:
                     
 ## The Controls
 As most upmixers do, it provides some controls to filter the output frequencies sent to the speakers, surround speakers generally will output the mid & high frequencies, and the sub is responsible for reproducing the low frequencies. The crossover frequency control defines the frequency (Hz) in which the bass sounds are rolled off the surround speakers and the trebels are rolled off the subwoofer channel. Rolling the dial to the left will introduce more bass into the surround speakers, but subtract some of the bass/mids from the Sub. The crossover frequency will vary between home theatre setups, but if you aren't sure then leave it as it is. If you want the bass sound coming from the surround speakers also, check the 'Full-range surround speakers' button, this will bypass the bass cut-off on the surround channels.
+
 ![Screenshot 2022-03-06 155201 2235](https://user-images.githubusercontent.com/15713334/156935549-2b07be7a-1b05-45e7-a194-6d0095fe9d96.png)
 
 # Installation Guide
@@ -30,7 +31,9 @@ Next download the packaged VST plugin below:
 [Download](https://github.com/itsalic/StereoToSurroundUpmixer/raw/Distributables/StereoToSurround.zip)
 Extract the plugin .dll and place it in your Equaliser APO plugin folder (Default location: C:\Program Files\EqualizerAPO\VSTPlugins)
 Open the EqualizerAPO configurator, and add a VST Plugin
+
 ![image](https://user-images.githubusercontent.com/15713334/156935531-4aa564fe-ae58-40a9-b1a8-936b9bcbc437.png)
+
 Select the StereoToSurround.dll and that's it! You're done and it should all be working!
 
 This is my first time creating a VST Plugin (built with the JUCE framework), and i'm rather inexperienced in C++ (I'm a java developer mainly).
