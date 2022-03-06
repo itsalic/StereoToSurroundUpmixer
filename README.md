@@ -25,11 +25,15 @@ As most upmixers do, it provides some controls to filter the output frequencies 
 
 # Installation Guide
 If you are unfamiliar with what a VST Plugin is or how to use it, don't worry its super simple!
+
 First download and install EqualizerAPO ([Download and guide here](https://equalizerapo.com/)) and enable it on the desired audio device that you want this plugin to work with.
 
 Next download the packaged VST plugin below:
+
 [Download](https://github.com/itsalic/StereoToSurroundUpmixer/raw/Distributables/StereoToSurround.zip)
+
 Extract the plugin .dll and place it in your Equaliser APO plugin folder (Default location: C:\Program Files\EqualizerAPO\VSTPlugins)
+
 Open the EqualizerAPO configurator, and add a VST Plugin
 
 ![image](https://user-images.githubusercontent.com/15713334/156935531-4aa564fe-ae58-40a9-b1a8-936b9bcbc437.png)
