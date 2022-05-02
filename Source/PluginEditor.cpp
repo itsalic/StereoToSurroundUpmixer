@@ -40,7 +40,7 @@ StereoToSurroundAudioProcessorEditor::StereoToSurroundAudioProcessorEditor (Ster
     mCenterGain.setSliderStyle(juce::Slider::SliderStyle::Rotary);
     mCenterGain.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50, 25);
     mCenterGain.setTextValueSuffix("%");
-    mCenterLabel.setText("Center Channel", juce::dontSendNotification);
+    mCenterLabel.setText("Center Channel\nVolume", juce::dontSendNotification);
     mCenterLabel.setFont(15.0f);
     mCenterLabel.setJustificationType(juce::Justification::centred);
     mCenterLabel.attachToComponent(&mCenterGain, false);
@@ -56,7 +56,7 @@ StereoToSurroundAudioProcessorEditor::StereoToSurroundAudioProcessorEditor (Ster
     mFrontGain.setSliderStyle(juce::Slider::SliderStyle::Rotary);
     mFrontGain.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50, 25);
     mFrontGain.setTextValueSuffix("%");
-    mFrontLabel.setText("Front Channel", juce::dontSendNotification);
+    mFrontLabel.setText("Front Channel\nVolumes", juce::dontSendNotification);
     mFrontLabel.setFont(15.0f);
     mFrontLabel.setJustificationType(juce::Justification::centred);
     mFrontLabel.attachToComponent(&mFrontGain, false);
@@ -72,7 +72,7 @@ StereoToSurroundAudioProcessorEditor::StereoToSurroundAudioProcessorEditor (Ster
     mRearGain.setSliderStyle(juce::Slider::SliderStyle::Rotary);
     mRearGain.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50, 25);
     mRearGain.setTextValueSuffix("%");
-    mRearLabel.setText("Rear Channel", juce::dontSendNotification);
+    mRearLabel.setText("Rear Channel\nVolumes", juce::dontSendNotification);
     mRearLabel.setFont(15.0f);
     mRearLabel.setJustificationType(juce::Justification::centred);
     mRearLabel.attachToComponent(&mRearGain, false);
@@ -88,7 +88,7 @@ StereoToSurroundAudioProcessorEditor::StereoToSurroundAudioProcessorEditor (Ster
     mSubGain.setSliderStyle(juce::Slider::SliderStyle::Rotary);
     mSubGain.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50, 25);
     mSubGain.setTextValueSuffix("%");
-    mSubLabel.setText("Sub Channel", juce::dontSendNotification);
+    mSubLabel.setText("Sub Channel\nVolume", juce::dontSendNotification);
     mSubLabel.setFont(15.0f);
     mSubLabel.setJustificationType(juce::Justification::centred);
     mSubLabel.attachToComponent(&mSubGain, false);
@@ -102,7 +102,6 @@ StereoToSurroundAudioProcessorEditor::StereoToSurroundAudioProcessorEditor (Ster
     addAndMakeVisible(mSub);
 
     highPassGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(valueTreeState, "highPassFreq", mHighPassGain);
-    //highPassGainAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(valueTreeState, "highPassFreq", mHighPassGain));
     highPassAttachment.reset(new juce::AudioProcessorValueTreeState::ButtonAttachment(valueTreeState, "highPass", mHighPass));
 
     lowPassGainAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(valueTreeState, "lowPassFreq", mLowPassGain));
@@ -146,14 +145,14 @@ void StereoToSurroundAudioProcessorEditor::resized()
     mLowPass.setBounds(getWidth() / 2 + 92, 10, 75, 25);
 
     mCenterGain.setBounds(getWidth() / 2 - 325, 290, 200, 150);
-    mCenter.setBounds(getWidth() / 2 - 263, 240, 75, 25);
+    mCenter.setBounds(getWidth() / 2 - 263, 230, 75, 25);
 
     mFrontGain.setBounds(getWidth() / 2 - 175, 290, 200, 150);
-    mFront.setBounds(getWidth() / 2 - 113, 240, 75, 25);
+    mFront.setBounds(getWidth() / 2 - 113, 230, 75, 25);
 
     mRearGain.setBounds(getWidth() / 2 - 25, 290, 200, 150);
-    mRear.setBounds(getWidth() / 2 + 36, 240, 75, 25);
+    mRear.setBounds(getWidth() / 2 + 36, 230, 75, 25);
 
     mSubGain.setBounds(getWidth() / 2 + 125, 290, 200, 150);
-    mSub.setBounds(getWidth() / 2 + 186, 240, 75, 25);
+    mSub.setBounds(getWidth() / 2 + 186, 230, 75, 25);
 }
