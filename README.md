@@ -9,7 +9,7 @@ Most audio recievers have built in capability to upmix a 2 channel stereo signal
 ## The Solution
 I designed a solution, which will seamlessly play true surround, or alternatively fill a multi-channel surround output depending on the active audio. This means there is no need for switching modes or clicking any buttons, if you want to change modes.
 ### Lets get technical...
-This VST plugin take's window's multi-channel audio output, and checks on a channel per channel basis to see if it is empty. If a true 5.1 audio signal is present, the output will be unchanged and all of this plugin's processings will be bypassed. However, if the a channel is empty, it will get fill the channel with a corresponding channel.
+This VST plugin takes Window's multi-channel audio output, and checks on a channel per channel basis to see if it is empty. If a true 5.1 audio signal is present, the output will be unchanged and all of this plugin's processings will be bypassed. However, if the a channel is empty, it will fill the channel with a sample corresponding to its relative channel. See below:
 As below:
 
          L                           C                           R                      LFE (Sub)
