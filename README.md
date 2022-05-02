@@ -44,8 +44,8 @@ Open the EqualizerAPO configurator, and add a VST Plugin
 
 Select the StereoToSurround.dll and that's it! You're done and it should all be working!
 
-This is my first time creating a VST Plugin (built with the JUCE framework), and i'm rather inexperienced in C++ (I'm a java developer mainly).
+This is my first time creating a VST Plugin (built with the JUCE framework), and i'm rather inexperienced in C++ (I'm a Full-stack developer mainly working with Java).
 If you have any improvement ideas or code suggestions please create an Issue thread and I will make sure to read them.
 
 ### Known Bugs
-Currently, the plugin does not know the output channels Windows is set to (if you know how to do that, please let me know how). If Windows is set to output Stereo, and the plugin is left on, Window's will only take the L & R channels output from this plugin, so there will not be any bass present (as it will have been filtered off the normal channels. If you wish to keep this plugin active while using Windows in Stereo mode, click the 'Full-range Surround Speakers' button, and this will preserve all of the bass, allowing the audio reciever to upmix the full stereo sound.
+Currently, the plugin does not know the output channels Windows is set to (if you know how to do that, please let me know how). If Windows is set to output Stereo, and the plugin is left on, Window's will only take the L & R channels output from this plugin, so there will not be any bass present (as it will have been filtered off the normal channels.
