@@ -34,7 +34,7 @@ First download and install EqualizerAPO ([Download and guide here](https://equal
 
 Next download the packaged VST plugin below:
 
-[Download](https://github.com/itsalic/StereoToSurroundUpmixer/raw/Distributables/StereoToSurround.zip)
+[StereoToSurround VSTPlugin Download](https://github.com/itsalic/StereoToSurroundUpmixer/raw/Distributables/StereoToSurround.zip)
 
 Extract the plugin .dll and place it in your Equaliser APO plugin folder (Default location: C:\Program Files\EqualizerAPO\VSTPlugins)
 
