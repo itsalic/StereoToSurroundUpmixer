@@ -55,8 +55,22 @@ private:
     filterChain highPassFilterRL;
     filterChain highPassFilterRR;
     juce::AudioProcessorValueTreeState parameters;
-    std::atomic<float>* crossoverParameter = nullptr;
-    std::atomic<float>* fullrangeParameter = nullptr;
+    std::atomic<float>* highPassFreqParameter = nullptr;
+    std::atomic<float>* highPassParameter = nullptr;
+    std::atomic<float>* lowPassFreqParameter = nullptr;
+    std::atomic<float>* lowPassParameter = nullptr;
+    std::atomic<float>* centerGainValueParameter = nullptr;
+    std::atomic<float>* frontGainValueParameter = nullptr;
+    std::atomic<float>* rearGainValueParameter = nullptr;
+    std::atomic<float>* subGainValueParameter = nullptr;
+    int centerGainValue;
+    int frontGainValue;
+    int rearGainValue;
+    int subGainValue;
+    std::atomic<float>* centerGainParameter = nullptr;
+    std::atomic<float>* frontGainParameter = nullptr;
+    std::atomic<float>* rearGainParameter = nullptr;
+    std::atomic<float>* subGainParameter = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoToSurroundAudioProcessor)
 };
