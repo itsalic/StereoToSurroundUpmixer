@@ -19,12 +19,16 @@ As below:
      (L Copy)                                                (R Copy)
                     
 ## The Controls
-As most upmixers do, it provides some controls to filter the output frequencies sent to the speakers, surround speakers generally will output the mid & high frequencies, and the sub is responsible for reproducing the low frequencies. The crossover frequency control defines the frequency (Hz) in which the bass sounds are rolled off the surround speakers and the trebels are rolled off the subwoofer channel. Rolling the dial to the left will introduce more bass into the surround speakers, but subtract some of the bass/mids from the Sub. The crossover frequency will vary between home theatre setups, but if you aren't sure then leave it as it is. If you want the bass sound coming from the surround speakers also, check the 'Full-range surround speakers' button, this will bypass the bass cut-off on the surround channels.
+As most upmixers do, it provides some controls to filter the output frequencies sent to the speakers, surround speakers generally will output the mid & high frequencies, and the sub is responsible for reproducing the low frequencies. The plugin allows control over the lower frequency limit for the surround speakers, and the upper frequceny of the subwoofer. To introduce more bass into the surround speaker, turn the surround dial down. However, if you want your subwoofer to play higher frequency sounds, turn the dial up. If this sounds confusing, don't worry! You can leave them at their default values.
 
-![Screenshot 2022-03-06 155201 2235](https://user-images.githubusercontent.com/15713334/156935549-2b07be7a-1b05-45e7-a194-6d0095fe9d96.png)
+# V2.0
+I have added per channel volume controls which is useful to correct for speaker placement and equalise volumes. I.E. it is common for the rear speakers to be closer to the sitting position than the front speakers, so this feature allows the rear volume to be lowered to be audibly equal in volume to the front speakers.
+
+![image](https://user-images.githubusercontent.com/15713334/166313423-f63c0c8f-2e41-4ce2-9050-800e8ff73897.png)
+
 
 # Installation Guide
-If you are unfamiliar with what a VST Plugin is or how to use it, don't worry its super simple!
+If you are unfamiliar with what a VST Plugin is or how to use it, it's super simple!
 
 First download and install EqualizerAPO ([Download and guide here](https://equalizerapo.com/)) and enable it on the desired audio device that you want this plugin to work with.
 
