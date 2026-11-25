@@ -46,31 +46,61 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 private:
     //==============================================================================
-    using filterDuplicator = juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>>;
-    using filterChain = juce::dsp::ProcessorChain<filterDuplicator, filterDuplicator>;
-    filterChain lowPassFilterLFE;
-    filterChain highPassFilterL;
-    filterChain highPassFilterR;
-    filterChain highPassFilterC;
-    filterChain highPassFilterRL;
-    filterChain highPassFilterRR;
+    enum class Role { other, frontLeft, frontRight, centre, lfe, surroundLeft, surroundRight };
+
+    // Channel groups that share a volume control.
+    enum Group { front, centre, lfe, surround, numGroups, noGroup = -1 };
+
+    struct ChannelState
+    {
+        Role role = Role::other;
+        int silentSamples = 0;
+        bool empty = false;
+        juce::SmoothedValue<float> fillAmount;
+    };
+
+    // 3rd-order Butterworth: a 1st-order section followed by a 2nd-order section with Q = 1.
+    struct ButterworthFilter
+    {
+        void design (bool isHighPass, float frequency, double sampleRate);
+        void reset();
+        float processSample (float sample) noexcept { return secondOrder.processSample (firstOrder.processSample (sample)); }
+        void snapToZero() noexcept;
+
+        juce::dsp::IIR::Filter<float> firstOrder, secondOrder;
+    };
+
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    static Group getGroup (Role role) noexcept;
+    void configureChannelRoles();
+    void updateFilterCoefficients (bool force);
+    void updateTargets (const juce::AudioBuffer<float>& buffer, int numChannels, bool canUpmix);
+
+    static constexpr int maxChannels = 16;
+
     juce::AudioProcessorValueTreeState parameters;
-    std::atomic<float>* highPassFreqParameter = nullptr;
-    std::atomic<float>* highPassParameter = nullptr;
-    std::atomic<float>* lowPassFreqParameter = nullptr;
-    std::atomic<float>* lowPassParameter = nullptr;
-    std::atomic<float>* centerGainValueParameter = nullptr;
-    std::atomic<float>* frontGainValueParameter = nullptr;
-    std::atomic<float>* rearGainValueParameter = nullptr;
-    std::atomic<float>* subGainValueParameter = nullptr;
-    int centerGainValue;
-    int frontGainValue;
-    int rearGainValue;
-    int subGainValue;
-    std::atomic<float>* centerGainParameter = nullptr;
-    std::atomic<float>* frontGainParameter = nullptr;
-    std::atomic<float>* rearGainParameter = nullptr;
-    std::atomic<float>* subGainParameter = nullptr;
+    juce::AudioParameterInt* highPassFreqParameter = nullptr;
+    juce::AudioParameterBool* highPassParameter = nullptr;
+    juce::AudioParameterInt* lowPassFreqParameter = nullptr;
+    juce::AudioParameterBool* lowPassParameter = nullptr;
+    std::array<juce::AudioParameterInt*, numGroups> gainValueParameters {};
+    std::array<juce::AudioParameterBool*, numGroups> gainEnabledParameters {};
+
+    double currentSampleRate = 44100.0;
+    int silenceHoldSamples = 0;
+
+    std::array<ChannelState, maxChannels> channelStates;
+    int numConfiguredChannels = 0;
+    int leftIndex = -1;
+    int rightIndex = -1;
+    int lfeIndex = -1;
+
+    ButterworthFilter highPassLeft, highPassRight, highPassMono, lowPassMono;
+    int designedHighPassFreq = -1;
+    int designedLowPassFreq = -1;
+
+    juce::SmoothedValue<float> highPassAmount, lowPassAmount, frontHighPassAmount;
+    std::array<juce::SmoothedValue<float>, numGroups> groupGains;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StereoToSurroundAudioProcessor)
 };

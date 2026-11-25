@@ -13,81 +13,77 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+namespace
+{
+    // Windows pads unused channels with exact zeros, so a peak level this low means "nothing playing".
+    constexpr float silenceThreshold = 1.0e-5f;
+
+    // A channel must stay silent this long before it is treated as empty and filled. This stops a
+    // genuine surround channel that briefly goes quiet from being filled (and pumping).
+    constexpr double silenceHoldSeconds = 0.5;
+
+    // Crossfade time used for every gain, fill and filter on/off change, to avoid clicks.
+    constexpr double rampSeconds = 0.05;
+
+    constexpr float minFilterFrequency = 20.0f;
+
+    template <typename ParameterType>
+    ParameterType* getTypedParameter (juce::AudioProcessorValueTreeState& state, const juce::String& id)
+    {
+        auto* parameter = dynamic_cast<ParameterType*> (state.getParameter (id));
+        jassert (parameter != nullptr);
+        return parameter;
+    }
+}
+
 StereoToSurroundAudioProcessor::StereoToSurroundAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
     : AudioProcessor(BusesProperties()
         .withInput("Input", juce::AudioChannelSet::create5point1())
         .withOutput("Output", juce::AudioChannelSet::create5point1())
     ),
-    parameters(*this, nullptr, juce::Identifier("StereoToSurroundUpmixerConfig"),
-    {
-        std::make_unique<juce::AudioParameterInt>("highPassFreq",
-                                                    "Surround-speaker low roll-off",
-                                                    0,
-                                                    500,
-                                                    180),
-        std::make_unique<juce::AudioParameterBool>("highPass",
-                                                   "Surround-speaker low roll-off",
-                                                   true),
-        std::make_unique<juce::AudioParameterInt>("lowPassFreq",
-                                                    "Sub-Woofer high roll-off",
-                                                    0,
-                                                    500,
-                                                    180),
-        std::make_unique<juce::AudioParameterBool>("lowPass",
-                                                   "Sub-Woofer high roll-off",
-                                                   true),
-        std::make_unique<juce::AudioParameterInt>("centerGainValue",
-                                                    "Center Volume",
-                                                    0,
-                                                    400,
-                                                    100),
-        std::make_unique<juce::AudioParameterBool>("centerGain",
-                                                   "center gain",
-                                                   true),
-        std::make_unique<juce::AudioParameterInt>("frontGainValue",
-                                                    "Front-Speaker Volume",
-                                                    0,
-                                                    400,
-                                                    100),
-        std::make_unique<juce::AudioParameterBool>("frontGain",
-                                                   "front gain",
-                                                   true),
-        std::make_unique<juce::AudioParameterInt>("rearGainValue",
-                                                    "Rear-Speaker Volume",
-                                                    0,
-                                                    400,
-                                                    100),
-        std::make_unique<juce::AudioParameterBool>("rearGain",
-                                                   "rear gain",
-                                                   true),
-        std::make_unique<juce::AudioParameterInt>("subGainValue",
-                                                    "Sub-Woofer Volume",
-                                                    0,
-                                                    400,
-                                                    100),
-        std::make_unique<juce::AudioParameterBool>("subGain",
-                                                   "sub gain",
-                                                   true)
-    })
+#else
+    :
 #endif
+    parameters(*this, nullptr, juce::Identifier("StereoToSurroundUpmixerConfig"), createParameterLayout())
 {
-    highPassFreqParameter = parameters.getRawParameterValue("highPassFreq");
-    highPassParameter = parameters.getRawParameterValue("highPass");
-    lowPassFreqParameter = parameters.getRawParameterValue("lowPassFreq");
-    lowPassParameter = parameters.getRawParameterValue("lowPass");
-    centerGainParameter = parameters.getRawParameterValue("centerGain");
-    frontGainParameter = parameters.getRawParameterValue("frontGain");
-    rearGainParameter = parameters.getRawParameterValue("rearGain");
-    subGainParameter = parameters.getRawParameterValue("subGain");
-    centerGainValueParameter = parameters.getRawParameterValue("centerGainValue");
-    frontGainValueParameter = parameters.getRawParameterValue("frontGainValue");
-    rearGainValueParameter = parameters.getRawParameterValue("rearGainValue");
-    subGainValueParameter = parameters.getRawParameterValue("subGainValue");
+    highPassFreqParameter = getTypedParameter<juce::AudioParameterInt>(parameters, "highPassFreq");
+    highPassParameter = getTypedParameter<juce::AudioParameterBool>(parameters, "highPass");
+    lowPassFreqParameter = getTypedParameter<juce::AudioParameterInt>(parameters, "lowPassFreq");
+    lowPassParameter = getTypedParameter<juce::AudioParameterBool>(parameters, "lowPass");
+
+    gainValueParameters[front] = getTypedParameter<juce::AudioParameterInt>(parameters, "frontGainValue");
+    gainValueParameters[centre] = getTypedParameter<juce::AudioParameterInt>(parameters, "centerGainValue");
+    gainValueParameters[lfe] = getTypedParameter<juce::AudioParameterInt>(parameters, "subGainValue");
+    gainValueParameters[surround] = getTypedParameter<juce::AudioParameterInt>(parameters, "rearGainValue");
+
+    gainEnabledParameters[front] = getTypedParameter<juce::AudioParameterBool>(parameters, "frontGain");
+    gainEnabledParameters[centre] = getTypedParameter<juce::AudioParameterBool>(parameters, "centerGain");
+    gainEnabledParameters[lfe] = getTypedParameter<juce::AudioParameterBool>(parameters, "subGain");
+    gainEnabledParameters[surround] = getTypedParameter<juce::AudioParameterBool>(parameters, "rearGain");
 }
 
 StereoToSurroundAudioProcessor::~StereoToSurroundAudioProcessor()
 {
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout StereoToSurroundAudioProcessor::createParameterLayout()
+{
+    // Parameter IDs must not change, otherwise saved settings will no longer load.
+    return {
+        std::make_unique<juce::AudioParameterInt>("highPassFreq", "Surround-speaker low roll-off", 0, 500, 180),
+        std::make_unique<juce::AudioParameterBool>("highPass", "Surround-speaker low roll-off on", true),
+        std::make_unique<juce::AudioParameterInt>("lowPassFreq", "Sub-Woofer high roll-off", 0, 500, 180),
+        std::make_unique<juce::AudioParameterBool>("lowPass", "Sub-Woofer high roll-off on", true),
+        std::make_unique<juce::AudioParameterInt>("centerGainValue", "Center Volume", 0, 400, 100),
+        std::make_unique<juce::AudioParameterBool>("centerGain", "Center on", true),
+        std::make_unique<juce::AudioParameterInt>("frontGainValue", "Front-Speaker Volume", 0, 400, 100),
+        std::make_unique<juce::AudioParameterBool>("frontGain", "Front-Speakers on", true),
+        std::make_unique<juce::AudioParameterInt>("rearGainValue", "Rear-Speaker Volume", 0, 400, 100),
+        std::make_unique<juce::AudioParameterBool>("rearGain", "Rear-Speakers on", true),
+        std::make_unique<juce::AudioParameterInt>("subGainValue", "Sub-Woofer Volume", 0, 400, 100),
+        std::make_unique<juce::AudioParameterBool>("subGain", "Sub-Woofer on", true)
+    };
 }
 
 //==============================================================================
@@ -125,7 +121,8 @@ bool StereoToSurroundAudioProcessor::isMidiEffect() const
 
 double StereoToSurroundAudioProcessor::getTailLengthSeconds() const
 {
-    return 0.0;
+    // Covers the IIR filter decay and the fill/gain crossfades.
+    return 0.1;
 }
 
 int StereoToSurroundAudioProcessor::getNumPrograms()
@@ -153,55 +150,38 @@ void StereoToSurroundAudioProcessor::changeProgramName (int index, const juce::S
 }
 
 //==============================================================================
-void StereoToSurroundAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void StereoToSurroundAudioProcessor::prepareToPlay (double sampleRate, int /*samplesPerBlock*/)
 {
-    juce::dsp::ProcessSpec spec;
-    spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = samplesPerBlock;
-    spec.numChannels = getTotalNumOutputChannels();
+    currentSampleRate = sampleRate;
+    silenceHoldSamples = juce::roundToInt(sampleRate * silenceHoldSeconds);
 
-    /*
-        NOTE: A new Filter instance is required for each channel as if the same filter is shared,
-        the sound quality will degrade massively (introduces noise and feedback)
-    */
+    configureChannelRoles();
 
-    if (!*highPassParameter) {
-        juce::ReferenceCountedArray<juce::dsp::IIR::Coefficients< float >> highPassFilterCoeffArray =
-            juce::dsp::FilterDesign< float >::designIIRHighpassHighOrderButterworthMethod(*highPassFreqParameter, sampleRate, 3);
+    updateFilterCoefficients(true);
+    for (auto* filter : { &highPassLeft, &highPassRight, &highPassMono, &lowPassMono })
+        filter->reset();
 
-        *highPassFilterL.get<0>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(0);
-        *highPassFilterL.get<1>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(1);
-        highPassFilterL.prepare(spec);
-        highPassFilterL.reset();
+    auto resetSmoothed = [sampleRate](juce::SmoothedValue<float>& value, float initialValue)
+    {
+        value.reset(sampleRate, rampSeconds);
+        value.setCurrentAndTargetValue(initialValue);
+    };
 
-        *highPassFilterR.get<0>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(0);
-        *highPassFilterR.get<1>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(1);
-        highPassFilterR.prepare(spec);
-        highPassFilterR.reset();
+    resetSmoothed(highPassAmount, highPassParameter->get() ? 1.0f : 0.0f);
+    resetSmoothed(lowPassAmount, lowPassParameter->get() ? 1.0f : 0.0f);
+    resetSmoothed(frontHighPassAmount, 0.0f);
 
-        *highPassFilterC.get<0>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(0);
-        *highPassFilterC.get<1>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(1);
-        highPassFilterC.prepare(spec);
-        highPassFilterC.reset();
+    for (int group = 0; group < numGroups; ++group)
+        resetSmoothed(groupGains[(size_t) group],
+                      gainEnabledParameters[(size_t) group]->get() ? (float) gainValueParameters[(size_t) group]->get() / 100.0f : 0.0f);
 
-        *highPassFilterRL.get<0>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(0);
-        *highPassFilterRL.get<1>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(1);
-        highPassFilterRL.prepare(spec);
-        highPassFilterRL.reset();
-
-        *highPassFilterRR.get<0>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(0);
-        *highPassFilterRR.get<1>().state = *highPassFilterCoeffArray.getObjectPointerUnchecked(1);
-        highPassFilterRR.prepare(spec);
-        highPassFilterRR.reset();
-    }
-    if (!*lowPassParameter) {
-        juce::ReferenceCountedArray<juce::dsp::IIR::Coefficients< float >> lowPassFilterCoeffArray =
-            juce::dsp::FilterDesign< float >::designIIRLowpassHighOrderButterworthMethod(*lowPassFreqParameter, sampleRate, 3);
-
-        *lowPassFilterLFE.get<0>().state = *lowPassFilterCoeffArray.getObjectPointerUnchecked(0);
-        *lowPassFilterLFE.get<1>().state = *lowPassFilterCoeffArray.getObjectPointerUnchecked(1);
-        lowPassFilterLFE.prepare(spec);
-        lowPassFilterLFE.reset();
+    // Start out assuming the channels are empty (with the fill faded out); the first block that
+    // carries real content switches them back to pass-through before anything is mixed in.
+    for (auto& state : channelStates)
+    {
+        state.silentSamples = silenceHoldSamples;
+        state.empty = true;
+        resetSmoothed(state.fillAmount, 0.0f);
     }
 }
 
@@ -217,99 +197,218 @@ bool StereoToSurroundAudioProcessor::isBusesLayoutSupported (const BusesLayout& 
 }
 #endif
 
-void StereoToSurroundAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void StereoToSurroundAudioProcessor::configureChannelRoles()
+{
+    auto layout = getChannelLayoutOfBus(true, 0);
+
+    // Hosts that only report a channel count (e.g. plain VST2) give a discrete layout,
+    // so fall back to the standard speaker order for that many channels.
+    if (layout.isDiscreteLayout())
+        layout = juce::AudioChannelSet::canonicalChannelSet(layout.size());
+
+    numConfiguredChannels = juce::jmin(layout.size(), maxChannels);
+    leftIndex = rightIndex = lfeIndex = -1;
+
+    for (int channel = 0; channel < numConfiguredChannels; ++channel)
+    {
+        auto& role = channelStates[(size_t) channel].role;
+
+        switch (layout.getTypeOfChannel(channel))
+        {
+            case juce::AudioChannelSet::left:               role = Role::frontLeft;     leftIndex = channel;  break;
+            case juce::AudioChannelSet::right:              role = Role::frontRight;    rightIndex = channel; break;
+            case juce::AudioChannelSet::centre:             role = Role::centre;        break;
+            case juce::AudioChannelSet::LFE:                role = Role::lfe;           lfeIndex = channel;   break;
+            case juce::AudioChannelSet::leftSurround:
+            case juce::AudioChannelSet::leftSurroundSide:
+            case juce::AudioChannelSet::leftSurroundRear:   role = Role::surroundLeft;  break;
+            case juce::AudioChannelSet::rightSurround:
+            case juce::AudioChannelSet::rightSurroundSide:
+            case juce::AudioChannelSet::rightSurroundRear:  role = Role::surroundRight; break;
+            default:                                        role = Role::other;         break;
+        }
+    }
+}
+
+StereoToSurroundAudioProcessor::Group StereoToSurroundAudioProcessor::getGroup (Role role) noexcept
+{
+    switch (role)
+    {
+        case Role::frontLeft:
+        case Role::frontRight:      return front;
+        case Role::centre:          return centre;
+        case Role::lfe:             return lfe;
+        case Role::surroundLeft:
+        case Role::surroundRight:   return surround;
+        case Role::other:
+        default:                    return noGroup;
+    }
+}
+
+void StereoToSurroundAudioProcessor::ButterworthFilter::design (bool isHighPass, float frequency, double sampleRate)
+{
+    using Coefficients = juce::dsp::IIR::ArrayCoefficients<float>;
+
+    // A 0 Hz cutoff is degenerate (unstable high-pass, NaN low-pass), and the cutoff must stay below Nyquist.
+    frequency = juce::jlimit(minFilterFrequency, (float) (sampleRate * 0.45), frequency);
+
+    // Assigning std::array coefficients reuses the existing storage, so this is safe on the audio thread.
+    if (isHighPass)
+    {
+        *firstOrder.coefficients = Coefficients::makeFirstOrderHighPass(sampleRate, frequency);
+        *secondOrder.coefficients = Coefficients::makeHighPass(sampleRate, frequency, 1.0f);
+    }
+    else
+    {
+        *firstOrder.coefficients = Coefficients::makeFirstOrderLowPass(sampleRate, frequency);
+        *secondOrder.coefficients = Coefficients::makeLowPass(sampleRate, frequency, 1.0f);
+    }
+}
+
+void StereoToSurroundAudioProcessor::ButterworthFilter::reset()
+{
+    firstOrder.reset();
+    secondOrder.reset();
+}
+
+void StereoToSurroundAudioProcessor::ButterworthFilter::snapToZero() noexcept
+{
+    firstOrder.snapToZero();
+    secondOrder.snapToZero();
+}
+
+void StereoToSurroundAudioProcessor::updateFilterCoefficients (bool force)
+{
+    const auto highPassFreq = highPassFreqParameter->get();
+    if (force || highPassFreq != designedHighPassFreq)
+    {
+        for (auto* filter : { &highPassLeft, &highPassRight, &highPassMono })
+            filter->design(true, (float) highPassFreq, currentSampleRate);
+        designedHighPassFreq = highPassFreq;
+    }
+
+    const auto lowPassFreq = lowPassFreqParameter->get();
+    if (force || lowPassFreq != designedLowPassFreq)
+    {
+        lowPassMono.design(false, (float) lowPassFreq, currentSampleRate);
+        designedLowPassFreq = lowPassFreq;
+    }
+}
+
+void StereoToSurroundAudioProcessor::updateTargets (const juce::AudioBuffer<float>& buffer, int numChannels, bool canUpmix)
+{
+    const int numSamples = buffer.getNumSamples();
+
+    for (int group = 0; group < numGroups; ++group)
+        groupGains[(size_t) group].setTargetValue(gainEnabledParameters[(size_t) group]->get()
+                                                      ? (float) gainValueParameters[(size_t) group]->get() / 100.0f
+                                                      : 0.0f);
+
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        auto& state = channelStates[(size_t) channel];
+        const auto group = getGroup(state.role);
+
+        if (group == noGroup || group == front)
+            continue;
+
+        // Only leave the empty state immediately; entering it requires sustained silence.
+        if (buffer.getMagnitude(channel, 0, numSamples) <= silenceThreshold)
+        {
+            state.silentSamples = juce::jmin(state.silentSamples + numSamples, silenceHoldSamples);
+            state.empty = state.silentSamples >= silenceHoldSamples;
+        }
+        else
+        {
+            state.silentSamples = 0;
+            state.empty = false;
+        }
+
+        const bool fill = canUpmix && state.empty && gainEnabledParameters[(size_t) group]->get();
+        state.fillAmount.setTargetValue(fill ? 1.0f : 0.0f);
+    }
+
+    highPassAmount.setTargetValue(highPassParameter->get() ? 1.0f : 0.0f);
+    lowPassAmount.setTargetValue(lowPassParameter->get() ? 1.0f : 0.0f);
+
+    // The fronts only lose their lows while the sub is being filled to take them over.
+    const bool subIsFilled = lfeIndex >= 0 && lfeIndex < numChannels
+                          && channelStates[(size_t) lfeIndex].fillAmount.getTargetValue() > 0.0f;
+    frontHighPassAmount.setTargetValue(highPassParameter->get() && subIsFilled ? 1.0f : 0.0f);
+}
+
+void StereoToSurroundAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& /*midiMessages*/)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    juce::dsp::AudioBlock<float> block(buffer);
-    int numSamples = buffer.getNumSamples();
-    bool upmix = false;
-    // Only fills the surround channels if they are present and empty
-    if (totalNumInputChannels > 2) {
-        if (buffer.getRMSLevel(2, 0, numSamples) < 0.00000001f) {
-            buffer.copyFrom(2, 0, buffer.getReadPointer(0), numSamples, 0.5f);
-            buffer.addFrom(2, 0, buffer.getReadPointer(1), numSamples, 0.5f);
-            upmix = true;
+    const int numSamples = buffer.getNumSamples();
+    const int numChannels = juce::jmin(buffer.getNumChannels(), numConfiguredChannels);
+
+    if (numSamples == 0 || numChannels == 0)
+        return;
+
+    updateFilterCoefficients(false);
+
+    const bool canUpmix = leftIndex >= 0 && leftIndex < numChannels && rightIndex >= 0 && rightIndex < numChannels;
+    updateTargets(buffer, numChannels, canUpmix);
+
+    std::array<float*, maxChannels> channelData {};
+    for (int channel = 0; channel < numChannels; ++channel)
+        channelData[(size_t) channel] = buffer.getWritePointer(channel);
+
+    // The fill signals are always generated (and their filters always run) so that filter state is
+    // continuous; they are only faded into channels that are currently empty.
+    for (int i = 0; i < numSamples; ++i)
+    {
+        float filteredLeft = 0.0f, filteredRight = 0.0f;
+        float surroundFillLeft = 0.0f, surroundFillRight = 0.0f, centreFill = 0.0f, lfeFill = 0.0f;
+
+        const float highPass = highPassAmount.getNextValue();
+        const float lowPass = lowPassAmount.getNextValue();
+        const float frontHighPass = frontHighPassAmount.getNextValue();
+
+        if (canUpmix)
+        {
+            const float left = channelData[(size_t) leftIndex][i];
+            const float right = channelData[(size_t) rightIndex][i];
+            const float mono = 0.5f * (left + right);
+
+            filteredLeft = highPassLeft.processSample(left);
+            filteredRight = highPassRight.processSample(right);
+            const float filteredMono = highPassMono.processSample(mono);
+            const float lowPassedMono = lowPassMono.processSample(mono);
+
+            surroundFillLeft = left + highPass * (filteredLeft - left);
+            surroundFillRight = right + highPass * (filteredRight - right);
+            centreFill = mono + highPass * (filteredMono - mono);
+            lfeFill = mono + lowPass * (lowPassedMono - mono);
+        }
+
+        std::array<float, numGroups> gains;
+        for (int group = 0; group < numGroups; ++group)
+            gains[(size_t) group] = groupGains[(size_t) group].getNextValue();
+
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            auto& state = channelStates[(size_t) channel];
+            float& sample = channelData[(size_t) channel][i];
+
+            switch (state.role)
+            {
+                case Role::frontLeft:     sample = (sample + frontHighPass * (filteredLeft - sample)) * gains[front]; break;
+                case Role::frontRight:    sample = (sample + frontHighPass * (filteredRight - sample)) * gains[front]; break;
+                case Role::centre:        sample = (sample + state.fillAmount.getNextValue() * centreFill) * gains[centre]; break;
+                case Role::lfe:           sample = (sample + state.fillAmount.getNextValue() * lfeFill) * gains[lfe]; break;
+                case Role::surroundLeft:  sample = (sample + state.fillAmount.getNextValue() * surroundFillLeft) * gains[surround]; break;
+                case Role::surroundRight: sample = (sample + state.fillAmount.getNextValue() * surroundFillRight) * gains[surround]; break;
+                case Role::other:
+                default:                  break;
+            }
         }
     }
-    if (totalNumInputChannels > 3) {
-        if (*subGainParameter && buffer.getRMSLevel(3, 0, numSamples) < 0.00000001f) {
-            buffer.copyFrom(3, 0, buffer.getReadPointer(0), numSamples, 0.5f);
-            buffer.addFrom(3, 0, buffer.getReadPointer(1), numSamples, 0.5f);
-            upmix = true;
-        }
-    }
-    if (totalNumInputChannels > 5 && *rearGainParameter) {
-        if (buffer.getRMSLevel(4, 0, numSamples) < 0.00000001f) {
-            buffer.copyFrom(4, 0, buffer.getReadPointer(0), numSamples);
-            upmix = true;
-        }
-        if (buffer.getRMSLevel(5, 0, numSamples) < 0.00000001f) {
-            buffer.copyFrom(5, 0, buffer.getReadPointer(1), numSamples);
-            upmix = true;
-        }
-    }
-    if (totalNumInputChannels > 1) {
-        if (!*frontGainParameter) {
-            buffer.clear(0, 0, numSamples);
-            buffer.clear(1, 0, numSamples);
-        } else if (frontGainValue == *frontGainValueParameter) {
-            buffer.applyGain(0, 0, numSamples, static_cast<float>(*frontGainValueParameter) / 100.0f);
-            buffer.applyGain(1, 0, numSamples, static_cast<float>(*frontGainValueParameter) / 100.0f);
-        } else {
-            buffer.applyGainRamp(0, 0, numSamples, static_cast<float>(frontGainValue) / 100.0f, static_cast<float>(*frontGainValueParameter) / 100.0f);
-            buffer.applyGainRamp(1, 0, numSamples, static_cast<float>(frontGainValue) / 100.0f, static_cast<float>(*frontGainValueParameter) / 100.0f);
-            frontGainValue = *frontGainValueParameter;
-        }
-    }
-    if (totalNumInputChannels > 2) {
-        if (!*centerGainParameter) {
-            buffer.clear(2, 0, numSamples);
-        } else if (centerGainValue == *centerGainValueParameter) {
-            buffer.applyGain(2, 0, numSamples, static_cast<float>(*centerGainValueParameter) / 100.0f);
-        } else {
-            buffer.applyGainRamp(2, 0, numSamples, static_cast<float>(centerGainValue) / 100.0f, static_cast<float>(*centerGainValueParameter) / 100.0f);
-            centerGainValue = *centerGainValueParameter;
-        }
-    }
-    if (totalNumInputChannels > 3) {
-        if (!*subGainParameter) {
-            buffer.clear(3, 0, numSamples);
-        } else if (subGainValue == *subGainValueParameter) {
-            buffer.applyGain(3, 0, numSamples, static_cast<float>(*subGainValueParameter) / 100.0f);
-        } else {
-            buffer.applyGainRamp(3, 0, numSamples, static_cast<float>(subGainValue) / 100.0f, static_cast<float>(*subGainValueParameter) / 100.0f);
-            subGainValue = *subGainValueParameter;
-        }
-    }
-    if (totalNumInputChannels > 5) {
-        if (!*rearGainParameter) {
-            buffer.clear(4, 0, numSamples);
-            buffer.clear(5, 0, numSamples);
-        } else if (rearGainValue == *rearGainValueParameter) {
-            buffer.applyGain(4, 0, numSamples, static_cast<float>(*rearGainValueParameter) / 100.0f);
-            buffer.applyGain(5, 0, numSamples, static_cast<float>(*rearGainValueParameter) / 100.0f);
-        } else {
-            buffer.applyGainRamp(4, 0, numSamples, static_cast<float>(rearGainValue) / 100.0f, static_cast<float>(*rearGainValueParameter) / 100.0f);
-            buffer.applyGainRamp(5, 0, numSamples, static_cast<float>(rearGainValue) / 100.0f, static_cast<float>(*rearGainValueParameter) / 100.0f);
-            rearGainValue = *rearGainValueParameter;
-        }
-    }
-    // Don't apply channel filtering if the input sound is already composed for surround sound
-    if (upmix) {
-        if (!*highPassParameter) {
-            if (totalNumInputChannels > 0) highPassFilterL.process(juce::dsp::ProcessContextReplacing<float>(block.getSubsetChannelBlock(0, 1)));
-            if (totalNumInputChannels > 1) highPassFilterR.process(juce::dsp::ProcessContextReplacing<float>(block.getSubsetChannelBlock(1, 1)));
-            if (totalNumInputChannels > 2) highPassFilterC.process(juce::dsp::ProcessContextReplacing<float>(block.getSubsetChannelBlock(2, 1)));
-            if (totalNumInputChannels > 4) highPassFilterRL.process(juce::dsp::ProcessContextReplacing<float>(block.getSubsetChannelBlock(4, 1)));
-            if (totalNumInputChannels > 5) highPassFilterRR.process(juce::dsp::ProcessContextReplacing<float>(block.getSubsetChannelBlock(5, 1)));
-        }
-        if (!*lowPassParameter) {
-            if (totalNumInputChannels > 3) lowPassFilterLFE.process(juce::dsp::ProcessContextReplacing<float>(block.getSubsetChannelBlock(3, 1)));
-        }
-    }
+
+    for (auto* filter : { &highPassLeft, &highPassRight, &highPassMono, &lowPassMono })
+        filter->snapToZero();
 }
 
 //==============================================================================
