@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="COwQdb" name="StereoToSurroundUpmixer" projectType="audioplug"
               useAppConfig="0" addUsingNamespaceToJuceHeader="0" displaySplashScreen="1"
-              jucerFormatVersion="1" pluginFormats="buildStandalone,buildVST">
+              jucerFormatVersion="1" pluginFormats="buildStandalone,buildVST,buildVST3">
   <MAINGROUP id="s3vTDY" name="StereoToSurroundUpmixer">
     <GROUP id="{22DD1AB2-C6F2-4C3A-8371-1FFC4EDAA601}" name="Source">
       <FILE id="TS6pH9" name="PluginProcessor.cpp" compile="1" resource="0"

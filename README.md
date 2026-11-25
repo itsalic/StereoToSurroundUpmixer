@@ -13,10 +13,16 @@ This VST plugin takes Window's multi-channel audio output, and checks on a chann
 As below:
 
          L                           C                           R                      LFE (Sub)
-    (unchanged)            (50% Left + 50% Right)           (unchanged)           (50% Left + 50% Right)
+    (unchanged*)           (50% Left + 50% Right)          (unchanged*)          (50% Left + 50% Right)
 
         RL                                                      RR
      (L Copy)                                                (R Copy)
+
+\* While the sub-woofer is being filled, the front speakers have their lows rolled off (by the "Surround Speaker Roll-off" control) so the bass is not doubled up; it is handed to the sub instead.
+
+A channel only counts as empty once it has been silent for half a second, and it goes back to being passed through as soon as it carries any sound. Switching between the two is crossfaded, so a true surround track that briefly goes quiet on one channel is not audibly disturbed.
+
+The plugin follows the channel layout it is given, so 7.1 outputs work too (side and rear channels are filled from the nearest front channel).
                     
 ## The Controls
 As most upmixers do, it provides some controls to filter the output frequencies sent to the speakers, surround speakers generally will output the mid & high frequencies, and the sub is responsible for reproducing the low frequencies. The plugin allows control over the lower frequency limit for the surround speakers, and the upper frequceny of the subwoofer. To introduce more bass into the surround speaker, turn the surround dial down. However, if you want your subwoofer to play higher frequency sounds, turn the dial up. If this sounds confusing, don't worry! You can leave them at their default values.
