@@ -1,4 +1,4 @@
-# Adaptive Stereo To 5.1 Surround Upmixer - VST Plugin
+# Adaptive Stereo To 5.1 / 7.1 Surround Upmixer - VST Plugin
 If you have a 5.1 home theatre setup plugged into a Windows PC which doesnt play stereo audio through some of the speakers, look no further as this is the solution for you!
 
 
@@ -9,7 +9,7 @@ Most audio recievers have built in capability to upmix a 2 channel stereo signal
 ## The Solution
 I designed a solution, which will seamlessly play true surround, or alternatively fill a multi-channel surround output depending on the active audio. This means there is no need for switching modes or clicking any buttons, if you want to change modes.
 ### Lets get technical...
-This VST plugin takes Window's multi-channel audio output, and checks on a channel per channel basis to see if it is empty. If a true 5.1 audio signal is present, the output will be unchanged and all of this plugin's processings will be bypassed. However, if the a channel is empty, it will fill the channel with a sample corresponding to its relative channel. See below:
+This VST plugin takes Window's multi-channel audio output, and checks on a channel per channel basis to see if it is empty. If a true 5.1 audio signal is present, the upmixing and filtering is bypassed and the output is passed through unchanged (the per-channel volume controls still apply). However, if the a channel is empty, it will fill the channel with a sample corresponding to its relative channel. See below:
 As below:
 
          L                           C                           R                      LFE (Sub)
@@ -19,6 +19,8 @@ As below:
      (L Copy)                                                (R Copy)
 
 \* While the sub-woofer is being filled, the front speakers have their lows rolled off (by the "Surround Speaker Roll-off" control) so the bass is not doubled up; it is handed to the sub instead.
+
+The filled channels are filtered by the roll-off controls: the center and rear fills are high-passed by the "Surround Speaker Roll-off", and the sub fill is low-passed by the "Sub-Woofer Roll-off".
 
 A channel only counts as empty once it has been silent for half a second, and it goes back to being passed through as soon as it carries any sound. Switching between the two is crossfaded, so a true surround track that briefly goes quiet on one channel is not audibly disturbed.
 
